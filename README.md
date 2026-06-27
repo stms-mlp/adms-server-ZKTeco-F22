@@ -1,102 +1,81 @@
-# ADMS (Attendance Device Management System)
+# Servidor ADMS ZKTeco — Municipalidad de Lago Puelo
 
-ADMS is a comprehensive Attendance Device Management System designed to handle biometric and access control data from various devices. This system is built using Laravel, a PHP framework, provides functionalities to store, manage user and fingerprint data.
+Servidor que recibe las marcaciones de los relojes biométricos **ZKTeco** (probado con **F22**)
+mediante el protocolo *Push* (`/iclock/*`), y un panel web para ver dispositivos, asistencia
+y enviar comandos a los relojes.
 
-## Features
+Reescrito en **PHP puro** (sin framework ni Composer) para correr fácil en **hosting compartido**
+(por ejemplo donweb) con una base **MySQL/MariaDB**.
 
-- Fingerprint data storage
-- Device status monitoring
+## Requisitos
 
-## Screenshots
-Device Connected
-![App Screenshot](https://github.com/saifulcoder/adms-server-ZKTeco/blob/main/Screenshot_7.png)
-Attendance Recorded
-![App Screenshot](https://github.com/saifulcoder/adms-server-ZKTeco/blob/main/Screenshot_8.png)
-Device Log
-![App Screenshot](https://github.com/saifulcoder/adms-server-ZKTeco/blob/main/Screenshot_9.png)
-Attendence Log
-![App Screenshot](https://github.com/saifulcoder/adms-server-ZKTeco/blob/main/Screenshot_10.png)
+- PHP >= 7.4 (probado en 8.x) con extensión **PDO MySQL**
+- MySQL o MariaDB
+- Apache con `mod_rewrite` (el `.htaccess` ya viene incluido)
 
-## Installation
+## Instalación
 
-### Prerequisites
+1. **Subir los archivos** al hosting (a `public_html` o la carpeta pública del dominio).
 
-Before you begin, ensure you have the following installed on your system:
-
-- PHP >= 8.0
-- Composer
-- MySQL or any other supported database
-- Web server (Apache, Nginx, etc.)
-
-### Steps
-
-1. **Clone the repository**
+2. **Crear la base de datos** e importar el esquema:
    ```bash
-   git clone https://github.com/saifulcoder/adms-server-ZKTeco.git adms-server
-   cd adms-server
+   mysql -u USUARIO -p NOMBRE_BASE < database/schema.sql
    ```
+   En donweb se puede importar `database/schema.sql` desde **phpMyAdmin**.
 
-2. **Install dependencies**
+3. **Configurar** copiando el ejemplo:
    ```bash
-   composer install
+   cp config.example.php config.php
    ```
+   Editar `config.php` con los datos de la base, la zona horaria y el usuario admin.
 
-3. **Copy the `.env` file**
+4. **Generar la clave del panel** y pegar el hash en `config.php` (`admin.pass_hash`):
    ```bash
-   cp .env.example .env
+   php -r "echo password_hash('TU_CLAVE', PASSWORD_DEFAULT), PHP_EOL;"
    ```
 
-4. **Generate application key**
-   ```bash
-   php artisan key:generate
-   ```
+5. Entrar al panel: `https://tudominio/` (te pide login).
 
-5. **Configure the `.env` file**
-   Open the `.env` file and set your database credentials and other environment variables:
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=adms
-   DB_USERNAME=root
-   DB_PASSWORD=
-   ```
+## Zona horaria (UTC-3)
 
-6. **Run the migrations**
-   ```bash
-   php artisan migrate
-   ```
+- `timezone` en `config.php` fija la zona del servidor (`America/Argentina/Buenos_Aires`).
+- `device_timezone` es el valor que se le envía al reloj en el *handshake*.
+  Para Lago Puelo (UTC-3) está en `'-3'`. Si tu firmware interpreta la zona en **minutos**,
+  usá `'-180'`. Poné `null` para no modificar la hora del reloj.
 
-7. **Serve the application**
-   ```bash
-   php artisan serve
-   ```
+## Apuntar el reloj al servidor
 
-### Monitoring Device Status
+En el reloj: **Menú → Comunicación → Servidor en la nube (ADMS)** y configurar la IP/dominio
+y el puerto del servidor. El reloj usará las rutas `/iclock/cdata` automáticamente.
 
-You can monitor the status of devices by querying the `devices` table where the `online` field indicates the last time the device was online.
+## Endpoints del protocolo (los usan los relojes)
 
-## Postman Collection
+| Método | Ruta                  | Función                                   |
+|--------|-----------------------|-------------------------------------------|
+| GET    | `/iclock/cdata`       | Handshake + envío de configuración/zona   |
+| POST   | `/iclock/cdata`       | Recepción de marcaciones (ATTLOG/OPERLOG) |
+| GET    | `/iclock/getrequest`  | El reloj retira los comandos pendientes   |
+| POST   | `/iclock/devicecmd`   | El reloj reporta el resultado del comando |
 
-For testing and interacting with the API endpoints, you can use the provided Postman collection:
-[Postman Collection](https://github.com/saifulcoder/adms-server-ZKTeco/blob/main/ADMS server ZKTeco.postman_collection.json)
+## Panel de pruebas
 
+En **Panel de pruebas** podés encolar comandos hacia los relojes: consultar info, alta/baja de
+usuarios, enrolar huella, replicar un *template* de huella a otro reloj, abrir cerradura,
+reiniciar, borrar datos y un campo de comando manual. Los comandos se ejecutan cuando el reloj
+vuelve a sondear; el resultado queda en el historial.
 
-## Authors
+> Nota: el alcance exacto de cada comando depende del firmware del reloj.
 
-- [@saifulcoder](https://github.com/saifulcoder)
+## Estructura
 
-## For Improvement and project
+```
+index.php              Front controller / router
+.htaccess              Reescritura de URLs (Apache)
+config.example.php     Plantilla de configuración (copiar a config.php)
+database/schema.sql    Esquema de la base de datos
+src/                   Código (protocolo, comandos, helpers, vistas)
+```
 
-contact us saiful.coder@gmail.com
+## Licencia
 
-## Contributing
-
-This project helps you and you want to help keep it going? Buy me a coffee:
-<br> <a href="https://www.buymeacoffee.com/saifulcoder" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: 61px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a><br>
-or via <br>
-<a href="https://saweria.co/saifulcoder">https://saweria.co/saifulcoder</a>
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT. Basado en el proyecto original [adms-server-ZKTeco](https://github.com/saifulcoder/adms-server-ZKTeco).
