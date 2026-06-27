@@ -10,8 +10,17 @@
 
 return [
 
-    // --- Base de datos (MySQL/MariaDB) ---
+    // --- Base de datos ---
+    // driver: 'sqlite' (recomendado, sin servidor) o 'mysql'.
     'db' => [
+        'driver' => 'sqlite',
+
+        // --- Solo para SQLite ---
+        // Archivo de la base. Está dentro de /data, protegido por .htaccess
+        // para que NO pueda descargarse por la web. Se crea solo la 1ª vez.
+        'sqlite_path' => __DIR__ . '/data/adms.sqlite',
+
+        // --- Solo para MySQL/MariaDB ---
         'host'    => '127.0.0.1',
         'port'    => 3306,
         'name'    => 'adms',

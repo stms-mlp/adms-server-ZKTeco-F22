@@ -33,12 +33,21 @@ function iclock_handshake(): void
         $_GET['options'] ?? null,
     ]);
 
-    // Registrar/actualizar el reloj
-    $up = db()->prepare(
-        'INSERT INTO devices (no_sn, online) VALUES (?, NOW())
-         ON DUPLICATE KEY UPDATE online = NOW()'
-    );
-    $up->execute([$sn]);
+    // Registrar/actualizar el reloj (UPSERT compatible con sqlite y mysql)
+    $now = now_sql();
+    if (db_driver() === 'sqlite') {
+        $up = db()->prepare(
+            'INSERT INTO devices (no_sn, online, updated_at) VALUES (?, ?, ?)
+             ON CONFLICT(no_sn) DO UPDATE SET online = excluded.online, updated_at = excluded.updated_at'
+        );
+        $up->execute([$sn, $now, $now]);
+    } else {
+        $up = db()->prepare(
+            'INSERT INTO devices (no_sn, online) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE online = VALUES(online)'
+        );
+        $up->execute([$sn, $now]);
+    }
 
     // Línea de zona horaria (solo si está configurada). UTC-3 => "-3".
     $tzLine = '';
@@ -97,8 +106,9 @@ function iclock_receive(): void
         $ins = db()->prepare(
             'INSERT INTO attendances
                 (sn, `table`, stamp, employee_id, `timestamp`, status1, status2, status3, status4, status5, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
+        $now = now_sql();
 
         foreach ($arr as $rey) {
             if ($rey === '' || $rey === null) {
@@ -116,6 +126,8 @@ function iclock_receive(): void
                 fmt_int($data[4] ?? null),
                 fmt_int($data[5] ?? null),
                 fmt_int($data[6] ?? null),
+                $now,
+                $now,
             ]);
             $tot++;
         }

@@ -13,7 +13,7 @@
 </IfModule>
 
 # Proteger archivos sensibles de acceso directo por la web.
-<FilesMatch "\.(sql|md|json|example\.php)$">
+<FilesMatch "\.(sql|md|json|example\.php|sqlite|sqlite3|db|db-wal|db-shm|sqlite-wal|sqlite-shm)$">
     Require all denied
 </FilesMatch>
 
@@ -21,6 +21,7 @@
     Require all denied
 </Files>
 
-# Bloquear el acceso directo a la carpeta de código fuente.
-RedirectMatch 403 ^/src/.*$
-RedirectMatch 403 ^/database/.*$
+# Bloquear el acceso directo a carpetas internas (código y base de datos).
+RedirectMatch 403 ^.*/src/.*$
+RedirectMatch 403 ^.*/database/.*$
+RedirectMatch 403 ^.*/data/.*$

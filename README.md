@@ -5,36 +5,48 @@ mediante el protocolo *Push* (`/iclock/*`), y un panel web para ver dispositivos
 y enviar comandos a los relojes.
 
 Reescrito en **PHP puro** (sin framework ni Composer) para correr fácil en **hosting compartido**
-(por ejemplo donweb) con una base **MySQL/MariaDB**.
+(por ejemplo donweb). Funciona con **SQLite** (por defecto, sin servidor de base) o con
+**MySQL/MariaDB**.
 
 ## Requisitos
 
-- PHP >= 7.4 (probado en 8.x) con extensión **PDO MySQL**
-- MySQL o MariaDB
+- PHP >= 7.4 (probado en 8.x) con **PDO** (`pdo_sqlite` y/o `pdo_mysql`)
 - Apache con `mod_rewrite` (el `.htaccess` ya viene incluido)
+- (Opcional) MySQL/MariaDB si preferís ese motor
+
+## Base de datos: SQLite o MySQL
+
+El motor se elige en `config.php` con `db.driver`:
+
+- **`'sqlite'` (recomendado, por defecto):** no necesita servidor de base. El archivo se crea
+  solo la primera vez en `data/adms.sqlite`. Esa carpeta está protegida por `.htaccess`
+  (`data/.htaccess` + reglas en el `.htaccess` raíz) para que la base **no pueda descargarse**
+  por la web. Backup = copiar el archivo. Asegurate de que la carpeta `data/` tenga permisos
+  de escritura para PHP.
+- **`'mysql'`:** completá host/usuario/clave/base e importá el esquema:
+  ```bash
+  mysql -u USUARIO -p NOMBRE_BASE < database/schema.sql
+  ```
+  (en donweb se importa `database/schema.sql` desde **phpMyAdmin**).
+
+> Con SQLite no hace falta importar nada: las tablas se crean automáticamente.
 
 ## Instalación
 
 1. **Subir los archivos** al hosting (a `public_html` o la carpeta pública del dominio).
 
-2. **Crear la base de datos** e importar el esquema:
-   ```bash
-   mysql -u USUARIO -p NOMBRE_BASE < database/schema.sql
-   ```
-   En donweb se puede importar `database/schema.sql` desde **phpMyAdmin**.
-
-3. **Configurar** copiando el ejemplo:
+2. **Configurar** copiando el ejemplo:
    ```bash
    cp config.example.php config.php
    ```
-   Editar `config.php` con los datos de la base, la zona horaria y el usuario admin.
+   Editar `config.php` con el motor de base (`db.driver`), la zona horaria y el usuario admin.
 
-4. **Generar la clave del panel** y pegar el hash en `config.php` (`admin.pass_hash`):
+3. **Generar la clave del panel** y pegar el hash en `config.php` (`admin.pass_hash`):
    ```bash
    php -r "echo password_hash('TU_CLAVE', PASSWORD_DEFAULT), PHP_EOL;"
    ```
 
-5. Entrar al panel: `https://tudominio/` (te pide login).
+4. Entrar al panel: `https://tudominio/` (te pide login).
 
 ## Zona horaria (UTC-3)
 
@@ -72,7 +84,9 @@ vuelve a sondear; el resultado queda en el historial.
 index.php              Front controller / router
 .htaccess              Reescritura de URLs (Apache)
 config.example.php     Plantilla de configuración (copiar a config.php)
-database/schema.sql    Esquema de la base de datos
+database/schema.sql        Esquema para MySQL
+database/schema.sqlite.sql Esquema para SQLite (se aplica solo automáticamente)
+data/                  Base SQLite (protegida, no se sube al repo)
 src/                   Código (protocolo, comandos, helpers, vistas)
 ```
 

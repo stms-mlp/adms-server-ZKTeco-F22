@@ -46,9 +46,9 @@ function pop_pending_commands(string $sn): string
 
     $in = implode(',', array_fill(0, count($ids), '?'));
     $upd = db()->prepare(
-        "UPDATE device_commands SET status = 'sent', sent_at = NOW() WHERE id IN ($in)"
+        "UPDATE device_commands SET status = 'sent', sent_at = ? WHERE id IN ($in)"
     );
-    $upd->execute($ids);
+    $upd->execute(array_merge([now_sql()], $ids));
 
     return implode("\n", $lines) . "\n";
 }
@@ -58,9 +58,9 @@ function complete_command(int $id, ?string $returnCode, string $rawResponse): vo
 {
     $status = ($returnCode === null || $returnCode === '' || (int) $returnCode === 0) ? 'done' : 'error';
     $stmt = db()->prepare(
-        'UPDATE device_commands SET status = ?, return_code = ?, response = ?, completed_at = NOW() WHERE id = ?'
+        'UPDATE device_commands SET status = ?, return_code = ?, response = ?, completed_at = ? WHERE id = ?'
     );
-    $stmt->execute([$status, $returnCode, $rawResponse, $id]);
+    $stmt->execute([$status, $returnCode, $rawResponse, now_sql(), $id]);
 }
 
 /**

@@ -1,0 +1,12 @@
+# No subir la base de datos SQLite ni sus archivos temporales.
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+
+# Pero sí conservar esta carpeta y su .htaccess.
+!.gitignore
+!.htaccess

@@ -29,6 +29,19 @@ if (!empty($config['debug'])) {
 // --- Zona horaria (UTC-3 para Lago Puelo) ---
 date_default_timezone_set($config['timezone'] ?? 'America/Argentina/Buenos_Aires');
 
+// --- Driver de base de datos en uso ('sqlite' o 'mysql') ---
+function db_driver(): string
+{
+    global $config;
+    return $config['db']['driver'] ?? 'sqlite';
+}
+
+/** Fecha/hora actual en formato SQL (independiente del motor). */
+function now_sql(): string
+{
+    return date('Y-m-d H:i:s');
+}
+
 // --- Conexión a la base de datos (PDO) ---
 function db(): PDO
 {
@@ -36,20 +49,45 @@ function db(): PDO
     global $config;
     if ($pdo === null) {
         $c = $config['db'];
-        $dsn = "mysql:host={$c['host']};port={$c['port']};dbname={$c['name']};charset={$c['charset']}";
+        $opts = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ];
         try {
-            $pdo = new PDO($dsn, $c['user'], $c['pass'], [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
-            ]);
-            $pdo->exec("SET time_zone = '-03:00'");
+            if (db_driver() === 'sqlite') {
+                $path = $c['sqlite_path'];
+                $dir  = dirname($path);
+                if (!is_dir($dir)) {
+                    @mkdir($dir, 0750, true);
+                }
+                $isNew = !file_exists($path);
+                $pdo = new PDO('sqlite:' . $path, null, null, $opts);
+                $pdo->exec('PRAGMA foreign_keys = ON');
+                $pdo->exec('PRAGMA journal_mode = WAL');
+                if ($isNew) {
+                    init_sqlite_schema($pdo);
+                }
+            } else {
+                $dsn = "mysql:host={$c['host']};port={$c['port']};dbname={$c['name']};charset={$c['charset']}";
+                $pdo = new PDO($dsn, $c['user'], $c['pass'], $opts);
+                $pdo->exec("SET time_zone = '-03:00'");
+            }
         } catch (PDOException $e) {
             http_response_code(500);
             exit('Error de conexión a la base de datos: ' . $e->getMessage());
         }
     }
     return $pdo;
+}
+
+/** Crea las tablas en una base SQLite nueva. */
+function init_sqlite_schema(PDO $pdo): void
+{
+    $sql = file_get_contents(BASE_PATH . '/database/schema.sqlite.sql');
+    if ($sql !== false) {
+        $pdo->exec($sql);
+    }
 }
 
 require __DIR__ . '/helpers.php';

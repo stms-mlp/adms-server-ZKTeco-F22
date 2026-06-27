@@ -1,0 +1,8 @@
+# La base SQLite vive acá. Bloquear TODO acceso web a esta carpeta.
+Require all denied
+
+# Compatibilidad con Apache 2.2
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
