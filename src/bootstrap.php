@@ -73,6 +73,7 @@ function db(): PDO
                 $pdo = new PDO($dsn, $c['user'], $c['pass'], $opts);
                 $pdo->exec("SET time_zone = '-03:00'");
             }
+            ensure_extra_tables($pdo);
         } catch (PDOException $e) {
             http_response_code(500);
             exit('Error de conexión a la base de datos: ' . $e->getMessage());
@@ -87,6 +88,49 @@ function init_sqlite_schema(PDO $pdo): void
     $sql = file_get_contents(BASE_PATH . '/database/schema.sqlite.sql');
     if ($sql !== false) {
         $pdo->exec($sql);
+    }
+}
+
+/**
+ * Migración liviana e idempotente: asegura tablas nuevas (empleados) en
+ * bases ya existentes. Se ejecuta en cada conexión (CREATE TABLE IF NOT EXISTS).
+ */
+function ensure_extra_tables(PDO $pdo): void
+{
+    if (db_driver() === 'sqlite') {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS employees (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                pin        TEXT NOT NULL UNIQUE,
+                nombre     TEXT,
+                apellido   TEXT,
+                dni        TEXT,
+                sector     TEXT,
+                cargo      TEXT,
+                foto       TEXT,
+                activo     INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT DEFAULT (datetime(\'now\',\'localtime\')),
+                updated_at TEXT DEFAULT (datetime(\'now\',\'localtime\'))
+            )'
+        );
+    } else {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS employees (
+                id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                pin        VARCHAR(190) NOT NULL,
+                nombre     VARCHAR(190) NULL,
+                apellido   VARCHAR(190) NULL,
+                dni        VARCHAR(60) NULL,
+                sector     VARCHAR(190) NULL,
+                cargo      VARCHAR(190) NULL,
+                foto       VARCHAR(255) NULL,
+                activo     TINYINT NOT NULL DEFAULT 1,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY employees_pin_unique (pin)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+        );
     }
 }
 

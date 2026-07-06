@@ -18,6 +18,7 @@
         <div class="collapse navbar-collapse" id="nav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('devices')) ?>">Relojes</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= e(base_url('employees')) ?>">Empleados</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('attendance')) ?>">Asistencia</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('panel')) ?>">Panel de pruebas</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('device-log')) ?>">Log dispositivos</a></li>

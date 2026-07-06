@@ -26,6 +26,25 @@ CREATE TABLE IF NOT EXISTS `devices` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
+--  Empleados. Se vinculan con las marcaciones por el PIN/ID del reloj.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `employees` (
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `pin`        VARCHAR(190) NOT NULL,      -- PIN/ID del empleado en el reloj
+    `nombre`     VARCHAR(190) NULL,
+    `apellido`   VARCHAR(190) NULL,
+    `dni`        VARCHAR(60) NULL,
+    `sector`     VARCHAR(190) NULL,
+    `cargo`      VARCHAR(190) NULL,
+    `foto`       VARCHAR(255) NULL,          -- ruta de la foto (carpeta uploads/)
+    `activo`     TINYINT NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `employees_pin_unique` (`pin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------
 --  Marcaciones de asistencia (fichadas)
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `attendances` (

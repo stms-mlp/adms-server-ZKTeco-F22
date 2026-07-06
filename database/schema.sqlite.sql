@@ -13,6 +13,20 @@ CREATE TABLE IF NOT EXISTS devices (
     updated_at TEXT DEFAULT (datetime('now','localtime'))
 );
 
+CREATE TABLE IF NOT EXISTS employees (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    pin        TEXT NOT NULL UNIQUE,   -- PIN/ID del empleado en el reloj (clave de vínculo)
+    nombre     TEXT,
+    apellido   TEXT,
+    dni        TEXT,
+    sector     TEXT,
+    cargo      TEXT,
+    foto       TEXT,                   -- ruta de la foto (carpeta uploads/)
+    activo     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    updated_at TEXT DEFAULT (datetime('now','localtime'))
+);
+
 CREATE TABLE IF NOT EXISTS attendances (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     sn          TEXT NOT NULL,
