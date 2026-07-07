@@ -92,8 +92,11 @@ function iclock_receive(): void
         $arr = preg_split('/\r\n|\r|\n/', $content);
         $tot = 0;
 
-        // Registros de operación (incluye altas de usuario/huella): solo contamos.
-        if ($table === 'OPERLOG') {
+        // Solo la tabla ATTLOG contiene marcaciones de asistencia.
+        // Todo lo demás (options, OPERLOG, USERINFO, FINGERTMP, etc.) NO se
+        // parsea como asistencia: se registra en finger_log y se confirma con
+        // OK, para que el reloj no reintente en bucle.
+        if ($table !== 'ATTLOG') {
             foreach ($arr as $rey) {
                 if ($rey !== '' && $rey !== null) {
                     $tot++;
