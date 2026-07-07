@@ -35,7 +35,12 @@
 </main>
 
 <footer class="text-center text-muted small py-4">
-    ADMS ZKTeco · Municipalidad de Lago Puelo
+    ADMS ZKTeco · Municipalidad de Lago Puelo<br>
+    <span title="Versión del código">v<?= e(APP_VERSION) ?></span>
+    ·
+    <span title="Fecha del archivo en el servidor (se actualiza al sincronizar)">
+        actualizado <?= e(date('d/m/Y H:i', @filemtime(BASE_PATH . '/index.php') ?: time())) ?>
+    </span>
 </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
 </body>

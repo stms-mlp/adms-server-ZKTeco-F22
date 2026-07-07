@@ -9,6 +9,9 @@ if (!defined('ADMS')) {
 
 define('BASE_PATH', dirname(__DIR__));
 
+// Versión de la aplicación (se actualiza en cada cambio).
+define('APP_VERSION', '2026.07.07-4288d4e');
+
 // --- Cargar configuración ---
 $configFile = BASE_PATH . '/config.php';
 if (!file_exists($configFile)) {
