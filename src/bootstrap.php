@@ -10,7 +10,7 @@ if (!defined('ADMS')) {
 define('BASE_PATH', dirname(__DIR__));
 
 // Versión de la aplicación (se actualiza en cada cambio).
-define('APP_VERSION', '2026.07.07-4288d4e');
+define('APP_VERSION', '2026.07.07-attlog');
 
 // --- Cargar configuración ---
 $configFile = BASE_PATH . '/config.php';
@@ -100,6 +100,19 @@ function init_sqlite_schema(PDO $pdo): void
  */
 function ensure_extra_tables(PDO $pdo): void
 {
+    // Índice único para no duplicar marcaciones si el reloj reenvía.
+    try {
+        if (db_driver() === 'sqlite') {
+            $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS attendances_unique
+                        ON attendances (sn, employee_id, `timestamp`)');
+        } else {
+            $pdo->exec('ALTER TABLE attendances
+                        ADD UNIQUE INDEX attendances_unique (sn, employee_id, `timestamp`)');
+        }
+    } catch (PDOException $e) {
+        // Ya existe (MySQL no soporta IF NOT EXISTS en índices): ignorar.
+    }
+
     if (db_driver() === 'sqlite') {
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS employees (

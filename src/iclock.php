@@ -55,20 +55,22 @@ function iclock_handshake(): void
         $tzLine = 'TimeZone=' . $config['device_timezone'] . "\r\n";
     }
 
+    // Stamps por tabla. "None" le indica al reloj que envíe TODOS los
+    // registros pendientes (asistencia y operaciones); desde ahí sigue en
+    // tiempo real. Con un número alto (p. ej. 9999) el firmware nuevo cree
+    // que ya está sincronizado y no envía nada.
     $r = "GET OPTION FROM: {$sn}\r\n"
-       . "Stamp=9999\r\n"
-       . 'OpStamp=' . time() . "\r\n"
-       . "ErrorDelay=60\r\n"
-       . "Delay=30\r\n"
-       . "ResLogDay=18250\r\n"
-       . "ResLogDelCount=10000\r\n"
-       . "ResLogCount=50000\r\n"
+       . "ATTLOGStamp=None\r\n"
+       . "OPERLOGStamp=None\r\n"
+       . "ATTPHOTOStamp=None\r\n"
+       . "ErrorDelay=30\r\n"
+       . "Delay=10\r\n"
        . "TransTimes=00:00;14:05\r\n"
        . "TransInterval=1\r\n"
        . "TransFlag=1111000000\r\n"
        . $tzLine
        . "Realtime=1\r\n"
-       . 'Encrypt=0';
+       . 'Encrypt=None';
 
     text_response($r);
 }
@@ -105,11 +107,12 @@ function iclock_receive(): void
             text_response('OK: ' . $tot);
         }
 
-        // Marcaciones de asistencia.
+        // Marcaciones de asistencia (idempotente: ignora duplicados).
+        $ignore = db_driver() === 'sqlite' ? 'INSERT OR IGNORE' : 'INSERT IGNORE';
         $ins = db()->prepare(
-            'INSERT INTO attendances
+            "$ignore INTO attendances
                 (sn, `table`, stamp, employee_id, `timestamp`, status1, status2, status3, status4, status5, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $now = now_sql();
 
