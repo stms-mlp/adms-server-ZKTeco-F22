@@ -59,10 +59,13 @@ function iclock_handshake(): void
     // registros pendientes (asistencia y operaciones); desde ahí sigue en
     // tiempo real. Con un número alto (p. ej. 9999) el firmware nuevo cree
     // que ya está sincronizado y no envía nada.
+    // ATTLOGStamp=None -> el reloj envía todas las marcaciones (protegidas
+    // contra duplicados por índice único). OPERLOG/ATTPHOTO en 9999 para que
+    // NO re-vuelque usuarios y huellas en cada reconexión (tráfico pesado).
     $r = "GET OPTION FROM: {$sn}\r\n"
        . "ATTLOGStamp=None\r\n"
-       . "OPERLOGStamp=None\r\n"
-       . "ATTPHOTOStamp=None\r\n"
+       . "OPERLOGStamp=9999\r\n"
+       . "ATTPHOTOStamp=9999\r\n"
        . "ErrorDelay=30\r\n"
        . "Delay=10\r\n"
        . "TransTimes=00:00;14:05\r\n"

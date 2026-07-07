@@ -10,7 +10,7 @@ if (!defined('ADMS')) {
 define('BASE_PATH', dirname(__DIR__));
 
 // Versión de la aplicación (se actualiza en cada cambio).
-define('APP_VERSION', '2026.07.07-attlog');
+define('APP_VERSION', '2026.07.07-attlog2');
 
 // --- Cargar configuración ---
 $configFile = BASE_PATH . '/config.php';
