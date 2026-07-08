@@ -15,6 +15,24 @@ function text_response(string $body): void
     exit;
 }
 
+/** Marca el reloj como "visto" ahora (cualquier contacto, no solo handshake). */
+function touch_device(string $sn): void
+{
+    if ($sn === '') { return; }
+    $now = now_sql();
+    if (db_driver() === 'sqlite') {
+        db()->prepare(
+            'INSERT INTO devices (no_sn, online, updated_at) VALUES (?, ?, ?)
+             ON CONFLICT(no_sn) DO UPDATE SET online = excluded.online, updated_at = excluded.updated_at'
+        )->execute([$sn, $now, $now]);
+    } else {
+        db()->prepare(
+            'INSERT INTO devices (no_sn, online) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE online = VALUES(online)'
+        )->execute([$sn, $now]);
+    }
+}
+
 /**
  * Handshake inicial:  GET /iclock/cdata?SN=...&options=all...
  * Registra el reloj y devuelve la configuración (incluida la zona horaria).
@@ -33,21 +51,8 @@ function iclock_handshake(): void
         $_GET['options'] ?? null,
     ]);
 
-    // Registrar/actualizar el reloj (UPSERT compatible con sqlite y mysql)
-    $now = now_sql();
-    if (db_driver() === 'sqlite') {
-        $up = db()->prepare(
-            'INSERT INTO devices (no_sn, online, updated_at) VALUES (?, ?, ?)
-             ON CONFLICT(no_sn) DO UPDATE SET online = excluded.online, updated_at = excluded.updated_at'
-        );
-        $up->execute([$sn, $now, $now]);
-    } else {
-        $up = db()->prepare(
-            'INSERT INTO devices (no_sn, online) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE online = VALUES(online)'
-        );
-        $up->execute([$sn, $now]);
-    }
+    // Registrar/actualizar el reloj
+    touch_device($sn);
 
     // Línea de zona horaria (solo si está configurada). UTC-3 => "-3".
     $tzLine = '';
@@ -88,6 +93,8 @@ function iclock_receive(): void
     $table   = $_GET['table'] ?? '';
     $stamp   = $_GET['Stamp'] ?? '';
     $content = file_get_contents('php://input');
+
+    touch_device($sn);
 
     // Log crudo
     $log = db()->prepare('INSERT INTO finger_log (url, data) VALUES (?, ?)');
@@ -158,6 +165,7 @@ function iclock_getrequest(): void
     if ($sn === '') {
         text_response('OK');
     }
+    touch_device($sn);
     $cmds = pop_pending_commands($sn);
     text_response($cmds !== '' ? $cmds : 'OK');
 }
@@ -168,6 +176,7 @@ function iclock_getrequest(): void
  */
 function iclock_devicecmd(): void
 {
+    touch_device($_GET['SN'] ?? '');
     $raw = file_get_contents('php://input');
     parse_str(str_replace("\n", '&', trim($raw)), $fields);
 

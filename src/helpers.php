@@ -83,6 +83,21 @@ function csrf_check_get(): bool
     return isset($_GET['csrf']) && hash_equals($_SESSION['csrf'] ?? '', $_GET['csrf']);
 }
 
+/** Reparticiones agrupadas por secretaría (para <optgroup>). */
+function reparticiones_agrupadas(): array
+{
+    $out = [];
+    $rows = db()->query(
+        'SELECT r.id, r.nombre AS rep, s.nombre AS sec
+         FROM reparticiones r JOIN secretarias s ON s.id = r.secretaria_id
+         ORDER BY s.nombre, r.es_secretaria DESC, r.nombre'
+    )->fetchAll();
+    foreach ($rows as $r) {
+        $out[$r['sec']][] = ['id' => $r['id'], 'nombre' => $r['rep']];
+    }
+    return $out;
+}
+
 /** Etiqueta legible del estado de marca (st1). Depende del firmware. */
 function estado_marca($v): string
 {

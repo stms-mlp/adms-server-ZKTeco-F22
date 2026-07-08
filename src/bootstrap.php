@@ -10,7 +10,7 @@ if (!defined('ADMS')) {
 define('BASE_PATH', dirname(__DIR__));
 
 // Versión de la aplicación (se actualiza en cada cambio).
-define('APP_VERSION', '2026.07.07-attlog2');
+define('APP_VERSION', '2026.07.07-organigrama');
 
 // --- Cargar configuración ---
 $configFile = BASE_PATH . '/config.php';
@@ -129,6 +129,17 @@ function ensure_extra_tables(PDO $pdo): void
                 updated_at TEXT DEFAULT (datetime(\'now\',\'localtime\'))
             )'
         );
+        $pdo->exec('CREATE TABLE IF NOT EXISTS secretarias (
+                id     INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL UNIQUE
+            )');
+        $pdo->exec('CREATE TABLE IF NOT EXISTS reparticiones (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                secretaria_id INTEGER NOT NULL,
+                nombre        TEXT NOT NULL,
+                es_secretaria INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(secretaria_id, nombre)
+            )');
     } else {
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS employees (
@@ -147,8 +158,31 @@ function ensure_extra_tables(PDO $pdo): void
                 UNIQUE KEY employees_pin_unique (pin)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
         );
+        $pdo->exec('CREATE TABLE IF NOT EXISTS secretarias (
+                id     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                nombre VARCHAR(190) NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY secretarias_nombre_unique (nombre)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+        $pdo->exec('CREATE TABLE IF NOT EXISTS reparticiones (
+                id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                secretaria_id BIGINT UNSIGNED NOT NULL,
+                nombre        VARCHAR(190) NOT NULL,
+                es_secretaria TINYINT NOT NULL DEFAULT 0,
+                PRIMARY KEY (id),
+                UNIQUE KEY reparticiones_unique (secretaria_id, nombre)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
+    }
+
+    // Columna de dependencia en empleados (repartición del organigrama).
+    try {
+        $pdo->exec('ALTER TABLE employees ADD COLUMN reparticion_id '
+            . (db_driver() === 'sqlite' ? 'INTEGER' : 'BIGINT UNSIGNED NULL'));
+    } catch (PDOException $e) {
+        // La columna ya existe: ignorar.
     }
 }
 
 require __DIR__ . '/helpers.php';
 require __DIR__ . '/commands.php';
+require __DIR__ . '/import.php';

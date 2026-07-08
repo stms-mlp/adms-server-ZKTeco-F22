@@ -19,7 +19,9 @@
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('devices')) ?>">Relojes</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('employees')) ?>">Empleados</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= e(base_url('organigrama')) ?>">Organigrama</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('attendance')) ?>">Asistencia</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= e(base_url('reportes')) ?>">Reportes</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('panel')) ?>">Panel de pruebas</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('device-log')) ?>">Log dispositivos</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('finger-log')) ?>">Finger log</a></li>

@@ -28,18 +28,35 @@ CREATE TABLE IF NOT EXISTS `devices` (
 -- ---------------------------------------------------------------------
 --  Empleados. Se vinculan con las marcaciones por el PIN/ID del reloj.
 -- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `secretarias` (
+    `id`     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `nombre` VARCHAR(190) NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `secretarias_nombre_unique` (`nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `reparticiones` (
+    `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `secretaria_id` BIGINT UNSIGNED NOT NULL,
+    `nombre`        VARCHAR(190) NOT NULL,
+    `es_secretaria` TINYINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `reparticiones_unique` (`secretaria_id`, `nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `employees` (
-    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `pin`        VARCHAR(190) NOT NULL,      -- PIN/ID del empleado en el reloj
-    `nombre`     VARCHAR(190) NULL,
-    `apellido`   VARCHAR(190) NULL,
-    `dni`        VARCHAR(60) NULL,
-    `sector`     VARCHAR(190) NULL,
-    `cargo`      VARCHAR(190) NULL,
-    `foto`       VARCHAR(255) NULL,          -- ruta de la foto (carpeta uploads/)
-    `activo`     TINYINT NOT NULL DEFAULT 1,
-    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `pin`            VARCHAR(190) NOT NULL,      -- PIN/ID del empleado en el reloj
+    `nombre`         VARCHAR(190) NULL,
+    `apellido`       VARCHAR(190) NULL,
+    `dni`            VARCHAR(60) NULL,
+    `sector`         VARCHAR(190) NULL,
+    `cargo`          VARCHAR(190) NULL,
+    `foto`           VARCHAR(255) NULL,          -- ruta de la foto (carpeta uploads/)
+    `reparticion_id` BIGINT UNSIGNED NULL,       -- dependencia (organigrama)
+    `activo`         TINYINT NOT NULL DEFAULT 1,
+    `created_at`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `employees_pin_unique` (`pin`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

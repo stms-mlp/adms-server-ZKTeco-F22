@@ -25,7 +25,7 @@
             <td>
                 <?php if ($nom !== ''): ?>
                     <?= e($nom) ?><br>
-                    <small class="text-muted">PIN <?= e($r['employee_id']) ?><?= $r['sector'] ? ' · ' . e($r['sector']) : '' ?></small>
+                    <small class="text-muted">PIN <?= e($r['employee_id']) ?><?= $r['reparticion'] ? ' · ' . e($r['reparticion']) : '' ?></small>
                 <?php else: ?>
                     <span class="text-muted">PIN <?= e($r['employee_id']) ?></span>
                     <br><small class="text-warning">sin empleado asignado</small>
