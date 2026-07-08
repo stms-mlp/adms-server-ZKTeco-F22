@@ -81,7 +81,7 @@ function build_command(string $action, array $p): array
 
         case 'create_user':
             $pin  = trim($p['pin'] ?? '');
-            $name = trim($p['name'] ?? '');
+            $name = normalizar_nombre_dispositivo($p['name'] ?? '');
             $card = trim($p['card'] ?? '');
             $pri  = trim($p['privilege'] ?? '0'); // 0=usuario, 14=admin
             $body = 'DATA UPDATE USERINFO PIN=' . $pin . $sep

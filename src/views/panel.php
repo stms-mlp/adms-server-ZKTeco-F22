@@ -11,6 +11,14 @@ $snSelect = function () use ($devices) {
     return $h;
 };
 $csrf = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
+$dedoSelect = function ($name = 'fid') {
+    $h = '<select name="' . $name . '" class="form-select form-select-sm">';
+    foreach (dedos() as $n => $nombre) {
+        $h .= '<option value="' . $n . '"' . ($n === 5 ? ' selected' : '') . '>' . e($n . ' · ' . $nombre) . '</option>';
+    }
+    $h .= '</select>';
+    return $h;
+};
 ?>
 <h2 class="mb-1">Panel de pruebas</h2>
 <p class="text-muted">
@@ -104,10 +112,9 @@ $csrf = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
             <p class="small text-muted mb-2">El usuario debe apoyar el dedo en el reloj cuando reciba el comando.</p>
             <form method="post"><?= $csrf ?><?= $snSelect() ?>
                 <input type="hidden" name="action" value="enroll_fp">
-                <div class="row g-2">
-                    <div class="col"><input name="pin" class="form-control form-control-sm" placeholder="PIN / ID" required></div>
-                    <div class="col"><input name="fid" class="form-control form-control-sm" placeholder="Dedo (0-9)" value="0"></div>
-                </div>
+                <input name="pin" class="form-control form-control-sm" placeholder="PIN / ID" required>
+                <label class="form-label mb-0 mt-2 small">Dedo</label>
+                <?= $dedoSelect() ?>
                 <button class="btn btn-sm btn-primary w-100 mt-2">Iniciar enrolamiento</button>
             </form>
         </div></div>
@@ -121,9 +128,9 @@ $csrf = '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
             <form method="post"><?= $csrf ?><?= $snSelect() ?>
                 <input type="hidden" name="action" value="push_fp">
                 <div class="row g-2">
-                    <div class="col"><input name="pin" class="form-control form-control-sm" placeholder="PIN / ID" required></div>
-                    <div class="col"><input name="fid" class="form-control form-control-sm" placeholder="Dedo" value="0"></div>
-                    <div class="col"><input name="size" class="form-control form-control-sm" placeholder="Size"></div>
+                    <div class="col-5"><input name="pin" class="form-control form-control-sm" placeholder="PIN / ID" required></div>
+                    <div class="col-4"><?= $dedoSelect() ?></div>
+                    <div class="col-3"><input name="size" class="form-control form-control-sm" placeholder="Size"></div>
                 </div>
                 <textarea name="tmp" class="form-control form-control-sm mt-2" rows="2" placeholder="TMP (template base64)"></textarea>
                 <button class="btn btn-sm btn-primary w-100 mt-2">Cargar template</button>

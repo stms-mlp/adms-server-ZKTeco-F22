@@ -44,6 +44,19 @@ CREATE TABLE IF NOT EXISTS `reparticiones` (
     UNIQUE KEY `reparticiones_unique` (`secretaria_id`, `nombre`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `system_users` (
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `usuario`    VARCHAR(190) NOT NULL,
+    `pass_hash`  VARCHAR(255) NOT NULL,
+    `rol`        VARCHAR(30) NOT NULL DEFAULT 'consulta',  -- admin | enrolador | consulta
+    `nombre`     VARCHAR(190) NULL,
+    `activo`     TINYINT NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `system_users_usuario_unique` (`usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS `employees` (
     `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `pin`            VARCHAR(190) NOT NULL,      -- PIN/ID del empleado en el reloj

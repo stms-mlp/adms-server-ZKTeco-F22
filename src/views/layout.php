@@ -1,4 +1,11 @@
-<?php if (!defined('ADMS')) { exit('No autorizado'); } ?>
+<?php if (!defined('ADMS')) { exit('No autorizado'); }
+$rol       = is_logged_in() ? current_rol() : '';
+$esConsulta = $rol === 'consulta';
+$esAdmin    = $rol === 'admin';
+$gestion    = has_rol(['admin', 'enrolador']); // acceso a gestión
+$logo       = file_exists(BASE_PATH . '/assets/escudo.png') ? base_url('assets/escudo.png') : null;
+$marca      = file_exists(BASE_PATH . '/assets/escudo-marca.png') ? base_url('assets/escudo-marca.png') : null;
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,26 +13,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($title ?? 'ADMS') ?> · ADMS Lago Puelo</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <?php if ($marca): ?>
+    <style>
+        body::before {
+            content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image: url('<?= e($marca) ?>');
+            background-repeat: no-repeat; background-position: center 55%;
+            background-size: min(60vw, 480px); opacity: 0.06;
+        }
+        main, nav, footer { position: relative; z-index: 1; }
+    </style>
+    <?php endif; ?>
 </head>
 <body class="bg-light">
 <?php if (is_logged_in()): ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-        <a class="navbar-brand" href="<?= e(base_url('devices')) ?>">ADMS · Lago Puelo</a>
+        <a class="navbar-brand d-flex align-items-center" href="<?= e(base_url($esConsulta ? 'reportes' : 'devices')) ?>">
+            <?php if ($logo): ?><img src="<?= e($logo) ?>" alt="Escudo" style="height:38px" class="me-2 bg-white rounded p-1"><?php endif; ?>
+            ADMS · Lago Puelo
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="nav">
             <ul class="navbar-nav me-auto">
+                <?php if ($gestion): ?>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('devices')) ?>">Relojes</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('employees')) ?>">Empleados</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('organigrama')) ?>">Organigrama</a></li>
+                <?php endif; ?>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('attendance')) ?>">Asistencia</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('reportes')) ?>">Reportes</a></li>
+                <?php if ($gestion): ?>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('panel')) ?>">Panel de pruebas</a></li>
-                <li class="nav-item"><a class="nav-link" href="<?= e(base_url('device-log')) ?>">Log dispositivos</a></li>
+                <?php endif; ?>
+                <?php if ($esAdmin): ?>
+                <li class="nav-item"><a class="nav-link" href="<?= e(base_url('usuarios')) ?>">Usuarios</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?= e(base_url('device-log')) ?>">Log disp.</a></li>
                 <li class="nav-item"><a class="nav-link" href="<?= e(base_url('finger-log')) ?>">Finger log</a></li>
+                <?php endif; ?>
             </ul>
+            <span class="navbar-text text-light me-3 small"><?= e($_SESSION['admin'] ?? '') ?> · <?= e(rol_label($rol)) ?></span>
             <a class="btn btn-outline-light btn-sm" href="<?= e(base_url('logout')) ?>">Salir</a>
         </div>
     </div>

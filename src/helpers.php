@@ -19,11 +19,45 @@ function start_session(): void
     }
 }
 
-/** ¿Hay un administrador logueado? */
+/** ¿Hay un usuario logueado? */
 function is_logged_in(): bool
 {
     start_session();
     return !empty($_SESSION['admin']);
+}
+
+/** Rol del usuario actual: 'admin' | 'enrolador' | 'consulta'. */
+function current_rol(): string
+{
+    start_session();
+    return $_SESSION['rol'] ?? 'admin';
+}
+
+/** ¿El usuario actual tiene alguno de estos roles? */
+function has_rol($roles): bool
+{
+    return in_array(current_rol(), (array) $roles, true);
+}
+
+/** Exige login y uno de los roles indicados; si no, 403. */
+function require_rol($roles): void
+{
+    require_login();
+    if (!has_rol($roles)) {
+        http_response_code(403);
+        view('logs', ['rows' => [], 'titulo' => 'Acceso denegado (403)'], '403');
+        exit;
+    }
+}
+
+/** Etiqueta legible de un rol. */
+function rol_label(string $rol): string
+{
+    return [
+        'admin'     => 'Administrador del sistema',
+        'enrolador' => 'Enrolador',
+        'consulta'  => 'Consulta (solo lectura)',
+    ][$rol] ?? $rol;
 }
 
 /** Exigir login; si no, redirige a /login. */
@@ -81,6 +115,56 @@ function csrf_check_get(): bool
 {
     start_session();
     return isset($_GET['csrf']) && hash_equals($_SESSION['csrf'] ?? '', $_GET['csrf']);
+}
+
+/**
+ * Mapa de dedos según la numeración FID de ZKTeco (0-9).
+ * Convención estándar: del meñique izquierdo (0) al meñique derecho (9).
+ */
+function dedos(): array
+{
+    return [
+        0 => 'Meñique izquierdo',
+        1 => 'Anular izquierdo',
+        2 => 'Mayor (medio) izquierdo',
+        3 => 'Índice izquierdo',
+        4 => 'Pulgar izquierdo',
+        5 => 'Pulgar derecho',
+        6 => 'Índice derecho',
+        7 => 'Mayor (medio) derecho',
+        8 => 'Anular derecho',
+        9 => 'Meñique derecho',
+    ];
+}
+
+/** Nombre del dedo a partir del FID. */
+function dedo_nombre($fid): string
+{
+    $d = dedos();
+    return $d[(int) $fid] ?? ('Dedo ' . $fid);
+}
+
+/**
+ * Normaliza un nombre para enviarlo al reloj: transilera acentos y ñ,
+ * quita caracteres que el firmware no maneja bien y colapsa espacios.
+ */
+function normalizar_nombre_dispositivo(string $s): string
+{
+    $s = trim($s);
+    $map = [
+        'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u',
+        'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ü'=>'U',
+        'ñ'=>'n','Ñ'=>'N','à'=>'a','è'=>'e','ì'=>'i','ò'=>'o','ù'=>'u',
+        'ç'=>'c','Ç'=>'C','º'=>'','ª'=>'','´'=>'','`'=>'',
+    ];
+    $s = strtr($s, $map);
+    if (function_exists('iconv')) {
+        $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+        if ($t !== false) { $s = $t; }
+    }
+    $s = preg_replace('/[^A-Za-z0-9 .\-]/', '', $s); // solo caracteres seguros
+    $s = preg_replace('/\s+/', ' ', trim($s));
+    return $s;
 }
 
 /** Reparticiones agrupadas por secretaría (para <optgroup>). */

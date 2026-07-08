@@ -26,6 +26,17 @@ CREATE TABLE IF NOT EXISTS reparticiones (
     UNIQUE(secretaria_id, nombre)
 );
 
+CREATE TABLE IF NOT EXISTS system_users (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario    TEXT NOT NULL UNIQUE,
+    pass_hash  TEXT NOT NULL,
+    rol        TEXT NOT NULL DEFAULT 'consulta',  -- admin | enrolador | consulta
+    nombre     TEXT,
+    activo     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    updated_at TEXT DEFAULT (datetime('now','localtime'))
+);
+
 CREATE TABLE IF NOT EXISTS employees (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     pin            TEXT NOT NULL UNIQUE,   -- PIN/ID del empleado en el reloj (clave de vínculo)

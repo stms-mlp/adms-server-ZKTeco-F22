@@ -46,9 +46,24 @@ if ($route === '/login') {
         start_session();
         $u = $_POST['user'] ?? '';
         $p = $_POST['pass'] ?? '';
-        if ($u === ($config['admin']['user'] ?? '') && password_verify($p, $config['admin']['pass_hash'] ?? '')) {
+        $ok = false;
+        // 1) Usuario de la tabla system_users
+        $st = db()->prepare('SELECT usuario, pass_hash, rol, activo FROM system_users WHERE usuario = ?');
+        $st->execute([$u]);
+        $row = $st->fetch();
+        if ($row && (int) $row['activo'] === 1 && password_verify($p, $row['pass_hash'])) {
+            $_SESSION['admin'] = $row['usuario'];
+            $_SESSION['rol']   = $row['rol'];
+            $ok = true;
+        }
+        // 2) Respaldo: admin de config.php (superadmin, no se puede bloquear)
+        if (!$ok && $u === ($config['admin']['user'] ?? '') && password_verify($p, $config['admin']['pass_hash'] ?? '')) {
             $_SESSION['admin'] = $u;
-            redirect('devices');
+            $_SESSION['rol']   = 'admin';
+            $ok = true;
+        }
+        if ($ok) {
+            redirect(has_rol('consulta') ? 'reportes' : 'devices');
         }
         view('login', ['error' => 'Usuario o clave incorrectos'], 'Ingreso');
         exit;
@@ -67,6 +82,11 @@ if ($route === '/logout') {
 
 // A partir de acá, todo exige login.
 require_login();
+
+// El rol "consulta" solo puede ver asistencia y reportes.
+if (current_rol() === 'consulta' && !in_array($route, ['/attendance', '/reportes'], true)) {
+    redirect('reportes');
+}
 
 switch ($route) {
     case '/':
@@ -204,20 +224,49 @@ switch ($route) {
 
     case '/organigrama':
         $msg = null;
-        if ($method === 'POST' && csrf_check() && ($_POST['importar'] ?? '') !== '') {
-            $r = importar_organigrama();
-            $msg = isset($r['error']) ? $r['error']
-                 : "Organigrama importado: {$r['secretarias']} secretarías nuevas, "
-                 . "{$r['reparticiones']} reparticiones nuevas, {$r['actualizadas']} actualizadas.";
+        if ($method === 'POST' && csrf_check()) {
+            require_rol('admin'); // editar el organigrama es solo de admin
+            $acc = $_POST['acc'] ?? '';
+            if ($acc === 'importar') {
+                $r = importar_organigrama();
+                $msg = isset($r['error']) ? $r['error']
+                     : "Organigrama importado: {$r['secretarias']} secretarías nuevas, "
+                     . "{$r['reparticiones']} reparticiones nuevas, {$r['actualizadas']} actualizadas.";
+            } elseif ($acc === 'add_sec' && trim($_POST['nombre'] ?? '') !== '') {
+                try { db()->prepare('INSERT INTO secretarias (nombre) VALUES (?)')->execute([trim($_POST['nombre'])]); $msg = 'Secretaría creada.'; }
+                catch (PDOException $e) { $msg = 'Ya existe una secretaría con ese nombre.'; }
+            } elseif ($acc === 'ren_sec' && (int)($_POST['id'] ?? 0) > 0) {
+                db()->prepare('UPDATE secretarias SET nombre = ? WHERE id = ?')->execute([trim($_POST['nombre']), (int)$_POST['id']]);
+                $msg = 'Secretaría renombrada.';
+            } elseif ($acc === 'del_sec' && (int)($_POST['id'] ?? 0) > 0) {
+                $n = (int) db()->query('SELECT COUNT(*) c FROM reparticiones WHERE secretaria_id = ' . (int)$_POST['id'])->fetch()['c'];
+                if ($n > 0) { $msg = 'No se puede borrar: la secretaría tiene reparticiones.'; }
+                else { db()->prepare('DELETE FROM secretarias WHERE id = ?')->execute([(int)$_POST['id']]); $msg = 'Secretaría borrada.'; }
+            } elseif ($acc === 'add_rep' && (int)($_POST['secretaria_id'] ?? 0) > 0 && trim($_POST['nombre'] ?? '') !== '') {
+                try {
+                    db()->prepare('INSERT INTO reparticiones (secretaria_id, nombre, es_secretaria) VALUES (?, ?, ?)')
+                        ->execute([(int)$_POST['secretaria_id'], trim($_POST['nombre']), isset($_POST['es_secretaria']) ? 1 : 0]);
+                    $msg = 'Repartición creada.';
+                } catch (PDOException $e) { $msg = 'Ya existe esa repartición en la secretaría.'; }
+            } elseif ($acc === 'ren_rep' && (int)($_POST['id'] ?? 0) > 0) {
+                db()->prepare('UPDATE reparticiones SET nombre = ?, es_secretaria = ? WHERE id = ?')
+                    ->execute([trim($_POST['nombre']), isset($_POST['es_secretaria']) ? 1 : 0, (int)$_POST['id']]);
+                $msg = 'Repartición actualizada.';
+            } elseif ($acc === 'del_rep' && (int)($_POST['id'] ?? 0) > 0) {
+                $n = (int) db()->query('SELECT COUNT(*) c FROM employees WHERE reparticion_id = ' . (int)$_POST['id'])->fetch()['c'];
+                if ($n > 0) { $msg = 'No se puede borrar: hay empleados en esa repartición.'; }
+                else { db()->prepare('DELETE FROM reparticiones WHERE id = ?')->execute([(int)$_POST['id']]); $msg = 'Repartición borrada.'; }
+            }
         }
+        $secretarias = db()->query('SELECT id, nombre FROM secretarias ORDER BY nombre')->fetchAll();
         $orga = db()->query(
-            'SELECT s.nombre AS secretaria, r.nombre AS reparticion, r.es_secretaria,
+            'SELECT s.id AS sec_id, s.nombre AS secretaria, r.id AS rep_id, r.nombre AS reparticion, r.es_secretaria,
                     (SELECT COUNT(*) FROM employees e WHERE e.reparticion_id = r.id) empleados
              FROM reparticiones r
              JOIN secretarias s ON s.id = r.secretaria_id
              ORDER BY s.nombre, r.es_secretaria DESC, r.nombre'
         )->fetchAll();
-        view('organigrama', ['orga' => $orga, 'msg' => $msg], 'Organigrama');
+        view('organigrama', ['orga' => $orga, 'secretarias' => $secretarias, 'msg' => $msg, 'puedeEditar' => has_rol('admin')], 'Organigrama');
         break;
 
     case '/reportes':
@@ -288,10 +337,18 @@ switch ($route) {
         break;
 
     case '/panel':
+        require_rol(['admin', 'enrolador']);
         $msg = null;
         if ($method === 'POST' && csrf_check()) {
             $sn     = $_POST['sn'] ?? '';
             $action = $_POST['action'] ?? '';
+            // Solo un admin del sistema puede crear administradores del reloj (Pri=14).
+            if ($action === 'create_user' && (int) ($_POST['privilege'] ?? 0) === 14 && !has_rol('admin')) {
+                $devices = db()->query('SELECT no_sn, nama FROM devices ORDER BY no_sn')->fetchAll();
+                $cmds = db()->query('SELECT id, sn, label, command, status, return_code, created_at, completed_at FROM device_commands ORDER BY id DESC LIMIT 50')->fetchAll();
+                view('panel', ['devices' => $devices, 'cmds' => $cmds, 'msg' => 'Solo un administrador del sistema puede crear administradores del reloj.'], 'Panel de pruebas');
+                break;
+            }
             [$body, $label] = build_command($action, $_POST);
             if ($sn !== '' && $body !== '') {
                 $id = enqueue_command($sn, $body, $label);
@@ -306,6 +363,39 @@ switch ($route) {
              FROM device_commands ORDER BY id DESC LIMIT 50'
         )->fetchAll();
         view('panel', ['devices' => $devices, 'cmds' => $cmds, 'msg' => $msg], 'Panel de pruebas');
+        break;
+
+    case '/usuarios':
+        require_rol('admin');
+        $msg = null;
+        $roles = ['admin', 'enrolador', 'consulta'];
+        if ($method === 'POST' && csrf_check()) {
+            $acc = $_POST['acc'] ?? '';
+            $usuario = trim($_POST['usuario'] ?? '');
+            $rol     = in_array($_POST['rol'] ?? '', $roles, true) ? $_POST['rol'] : 'consulta';
+            $nombre  = trim($_POST['nombre'] ?? '');
+            $clave   = (string) ($_POST['clave'] ?? '');
+            if ($acc === 'crear' && $usuario !== '' && $clave !== '') {
+                try {
+                    db()->prepare('INSERT INTO system_users (usuario, pass_hash, rol, nombre, activo, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)')
+                        ->execute([$usuario, password_hash($clave, PASSWORD_DEFAULT), $rol, $nombre, now_sql(), now_sql()]);
+                    $msg = 'Usuario creado.';
+                } catch (PDOException $e) { $msg = 'Ya existe un usuario con ese nombre.'; }
+            } elseif ($acc === 'editar' && (int)($_POST['id'] ?? 0) > 0) {
+                $id = (int) $_POST['id'];
+                $sql = 'UPDATE system_users SET rol = ?, nombre = ?, activo = ?' . ($clave !== '' ? ', pass_hash = ?' : '') . ', updated_at = ? WHERE id = ?';
+                $args = [$rol, $nombre, isset($_POST['activo']) ? 1 : 0];
+                if ($clave !== '') { $args[] = password_hash($clave, PASSWORD_DEFAULT); }
+                $args[] = now_sql(); $args[] = $id;
+                db()->prepare($sql)->execute($args);
+                $msg = 'Usuario actualizado.';
+            } elseif ($acc === 'borrar' && (int)($_POST['id'] ?? 0) > 0) {
+                db()->prepare('DELETE FROM system_users WHERE id = ?')->execute([(int)$_POST['id']]);
+                $msg = 'Usuario borrado.';
+            }
+        }
+        $usuarios = db()->query('SELECT id, usuario, rol, nombre, activo FROM system_users ORDER BY usuario')->fetchAll();
+        view('usuarios', ['usuarios' => $usuarios, 'roles' => $roles, 'msg' => $msg, 'confAdmin' => $config['admin']['user'] ?? 'admin'], 'Usuarios');
         break;
 
     default:
