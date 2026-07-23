@@ -26,15 +26,15 @@ $repSelect = function ($sel) use ($reparticiones) {
         <form method="post" enctype="multipart/form-data" action="<?= e(base_url('employees')) ?>">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="id" value="<?= e($ed['id'] ?? '') ?>">
-          <div class="mb-2">
-            <label class="form-label mb-0">PIN / ID en el reloj *</label>
-            <input name="pin" class="form-control form-control-sm" required value="<?= e($ed['pin'] ?? '') ?>">
-          </div>
           <div class="row g-2">
-            <div class="col"><input name="nombre" class="form-control form-control-sm" placeholder="Nombre" value="<?= e($ed['nombre'] ?? '') ?>"></div>
             <div class="col"><input name="apellido" class="form-control form-control-sm" placeholder="Apellido" value="<?= e($ed['apellido'] ?? '') ?>"></div>
+            <div class="col"><input name="nombre" class="form-control form-control-sm" placeholder="Nombre" value="<?= e($ed['nombre'] ?? '') ?>"></div>
           </div>
-          <input name="dni" class="form-control form-control-sm mt-2" placeholder="DNI" value="<?= e($ed['dni'] ?? '') ?>">
+          <label class="form-label mb-0 mt-2">DNI</label>
+          <input name="dni" id="empDni" class="form-control form-control-sm" placeholder="DNI" value="<?= e($ed['dni'] ?? '') ?>">
+          <label class="form-label mb-0 mt-2">ID en el reloj *</label>
+          <input name="pin" id="empId" class="form-control form-control-sm" required value="<?= e($ed['pin'] ?? '') ?>">
+          <small class="text-muted">Se autocompleta con el DNI; editable por si difiere. Es el número que ficha en el reloj.</small>
           <label class="form-label mb-0 mt-2">Dependencia</label>
           <?= $repSelect($ed['reparticion_id'] ?? '') ?>
           <input name="cargo" class="form-control form-control-sm mt-2" placeholder="Cargo" value="<?= e($ed['cargo'] ?? '') ?>">
@@ -129,3 +129,11 @@ $repSelect = function ($sel) use ($reparticiones) {
     </div>
   </div>
 </div>
+<script>
+(function(){
+  var dni = document.getElementById('empDni'), id = document.getElementById('empId');
+  if (dni && id) {
+    dni.addEventListener('input', function(){ if (id.value.trim() === '') id.value = dni.value.trim(); });
+  }
+})();
+</script>

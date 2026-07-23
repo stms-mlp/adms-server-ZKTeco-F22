@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS reparticiones (
     secretaria_id INTEGER NOT NULL,
     nombre        TEXT NOT NULL,
     es_secretaria INTEGER NOT NULL DEFAULT 0,
+    tipo          TEXT DEFAULT 'Otro',   -- Secretaría/Subsecretaría/Dirección/Departamento/División/Otro
+    parent_id     INTEGER,               -- dependencia padre (opcional)
     UNIQUE(secretaria_id, nombre)
 );
 

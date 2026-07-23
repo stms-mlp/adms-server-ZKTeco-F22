@@ -81,7 +81,13 @@ function build_command(string $action, array $p): array
 
         case 'create_user':
             $pin  = trim($p['pin'] ?? '');
-            $name = normalizar_nombre_dispositivo($p['name'] ?? '');
+            // Nombre para el reloj: si vienen apellido+nombre, formato "APELLIDO NOMBRE"
+            // (primero de cada uno); si no, se normaliza el texto libre.
+            if (($p['apellido'] ?? '') !== '' || ($p['nombre'] ?? '') !== '') {
+                $name = nombre_reloj($p['apellido'] ?? '', $p['nombre'] ?? '');
+            } else {
+                $name = mb_substr(strtoupper(normalizar_nombre_dispositivo($p['name'] ?? '')), 0, 24);
+            }
             $card = trim($p['card'] ?? '');
             $pri  = trim($p['privilege'] ?? '0'); // 0=usuario, 14=admin
             $body = 'DATA UPDATE USERINFO PIN=' . $pin . $sep

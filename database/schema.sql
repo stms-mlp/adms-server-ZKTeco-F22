@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS `reparticiones` (
     `secretaria_id` BIGINT UNSIGNED NOT NULL,
     `nombre`        VARCHAR(190) NOT NULL,
     `es_secretaria` TINYINT NOT NULL DEFAULT 0,
+    `tipo`          VARCHAR(40) NULL DEFAULT 'Otro',
+    `parent_id`     BIGINT UNSIGNED NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `reparticiones_unique` (`secretaria_id`, `nombre`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

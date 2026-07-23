@@ -167,6 +167,45 @@ function normalizar_nombre_dispositivo(string $s): string
     return $s;
 }
 
+/** Tipos de dependencia (nivel dentro de la secretaría). */
+function tipos_dependencia(): array
+{
+    return ['Secretaría', 'Subsecretaría', 'Dirección', 'Departamento', 'División', 'Otro'];
+}
+
+/**
+ * Arma el nombre a enviar al reloj: "APELLIDO NOMBRE" usando solo el primer
+ * apellido y el primer nombre, sin acentos/ñ/caracteres especiales, en
+ * mayúsculas y truncado a $max caracteres (límite del firmware).
+ */
+function nombre_reloj(string $apellido, string $nombre, int $max = 24): string
+{
+    // Primer apellido/nombre, conservando partículas ("De la Cruz", "Del Valle").
+    $primer = function (string $s): string {
+        $s = trim(preg_replace('/\s+/', ' ', $s));
+        if ($s === '') { return ''; }
+        $parts = explode(' ', $s);
+        $particulas = ['de', 'del', 'la', 'las', 'los', 'van', 'von', 'di', 'da', 'do', 'dos', 'san', 'santa', 'mac', 'mc'];
+        $out  = $parts[0];
+        $last = mb_strtolower($parts[0]);
+        $i = 1;
+        while ($i < count($parts) && in_array($last, $particulas, true)) {
+            $out .= ' ' . $parts[$i];
+            $last = mb_strtolower($parts[$i]);
+            $i++;
+        }
+        return $out;
+    };
+    $ap = $primer($apellido);
+    $no = $primer($nombre);
+    $full = trim($ap . ' ' . $no);
+    $full = strtoupper(normalizar_nombre_dispositivo($full));
+    if (function_exists('mb_substr')) {
+        return mb_substr($full, 0, $max);
+    }
+    return substr($full, 0, $max);
+}
+
 /** Reparticiones agrupadas por secretaría (para <optgroup>). */
 function reparticiones_agrupadas(): array
 {

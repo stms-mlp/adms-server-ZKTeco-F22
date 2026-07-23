@@ -243,15 +243,19 @@ switch ($route) {
                 if ($n > 0) { $msg = 'No se puede borrar: la secretaría tiene reparticiones.'; }
                 else { db()->prepare('DELETE FROM secretarias WHERE id = ?')->execute([(int)$_POST['id']]); $msg = 'Secretaría borrada.'; }
             } elseif ($acc === 'add_rep' && (int)($_POST['secretaria_id'] ?? 0) > 0 && trim($_POST['nombre'] ?? '') !== '') {
+                $tipo   = in_array($_POST['tipo'] ?? '', tipos_dependencia(), true) ? $_POST['tipo'] : 'Otro';
+                $parent = ($_POST['parent_id'] ?? '') !== '' ? (int) $_POST['parent_id'] : null;
                 try {
-                    db()->prepare('INSERT INTO reparticiones (secretaria_id, nombre, es_secretaria) VALUES (?, ?, ?)')
-                        ->execute([(int)$_POST['secretaria_id'], trim($_POST['nombre']), isset($_POST['es_secretaria']) ? 1 : 0]);
-                    $msg = 'Repartición creada.';
-                } catch (PDOException $e) { $msg = 'Ya existe esa repartición en la secretaría.'; }
+                    db()->prepare('INSERT INTO reparticiones (secretaria_id, nombre, es_secretaria, tipo, parent_id) VALUES (?, ?, ?, ?, ?)')
+                        ->execute([(int)$_POST['secretaria_id'], trim($_POST['nombre']), isset($_POST['es_secretaria']) ? 1 : 0, $tipo, $parent]);
+                    $msg = 'Dependencia creada.';
+                } catch (PDOException $e) { $msg = 'Ya existe esa dependencia en la secretaría.'; }
             } elseif ($acc === 'ren_rep' && (int)($_POST['id'] ?? 0) > 0) {
-                db()->prepare('UPDATE reparticiones SET nombre = ?, es_secretaria = ? WHERE id = ?')
-                    ->execute([trim($_POST['nombre']), isset($_POST['es_secretaria']) ? 1 : 0, (int)$_POST['id']]);
-                $msg = 'Repartición actualizada.';
+                $tipo   = in_array($_POST['tipo'] ?? '', tipos_dependencia(), true) ? $_POST['tipo'] : 'Otro';
+                $parent = ($_POST['parent_id'] ?? '') !== '' && (int)$_POST['parent_id'] !== (int)$_POST['id'] ? (int) $_POST['parent_id'] : null;
+                db()->prepare('UPDATE reparticiones SET nombre = ?, es_secretaria = ?, tipo = ?, parent_id = ? WHERE id = ?')
+                    ->execute([trim($_POST['nombre']), isset($_POST['es_secretaria']) ? 1 : 0, $tipo, $parent, (int)$_POST['id']]);
+                $msg = 'Dependencia actualizada.';
             } elseif ($acc === 'del_rep' && (int)($_POST['id'] ?? 0) > 0) {
                 $n = (int) db()->query('SELECT COUNT(*) c FROM employees WHERE reparticion_id = ' . (int)$_POST['id'])->fetch()['c'];
                 if ($n > 0) { $msg = 'No se puede borrar: hay empleados en esa repartición.'; }
@@ -260,13 +264,20 @@ switch ($route) {
         }
         $secretarias = db()->query('SELECT id, nombre FROM secretarias ORDER BY nombre')->fetchAll();
         $orga = db()->query(
-            'SELECT s.id AS sec_id, s.nombre AS secretaria, r.id AS rep_id, r.nombre AS reparticion, r.es_secretaria,
+            'SELECT s.id AS sec_id, s.nombre AS secretaria, r.id AS rep_id, r.nombre AS reparticion,
+                    r.es_secretaria, r.tipo, r.parent_id,
                     (SELECT COUNT(*) FROM employees e WHERE e.reparticion_id = r.id) empleados
              FROM reparticiones r
              JOIN secretarias s ON s.id = r.secretaria_id
              ORDER BY s.nombre, r.es_secretaria DESC, r.nombre'
         )->fetchAll();
-        view('organigrama', ['orga' => $orga, 'secretarias' => $secretarias, 'msg' => $msg, 'puedeEditar' => has_rol('admin')], 'Organigrama');
+        // Dependencias por secretaría, para elegir la dependencia padre.
+        $depsPorSec = [];
+        foreach ($orga as $o) { $depsPorSec[$o['sec_id']][] = ['id' => $o['rep_id'], 'nombre' => $o['reparticion'], 'tipo' => $o['tipo']]; }
+        view('organigrama', [
+            'orga' => $orga, 'secretarias' => $secretarias, 'depsPorSec' => $depsPorSec,
+            'tipos' => tipos_dependencia(), 'msg' => $msg, 'puedeEditar' => has_rol('admin'),
+        ], 'Organigrama');
         break;
 
     case '/reportes':

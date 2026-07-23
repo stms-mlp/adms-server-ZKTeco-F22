@@ -47,8 +47,8 @@ function importar_organigrama(): array
         $st->execute([$secId, $repNombre]);
         $repId = $st->fetchColumn();
         if ($repId === false) {
-            db()->prepare('INSERT INTO reparticiones (secretaria_id, nombre, es_secretaria) VALUES (?, ?, ?)')
-                ->execute([$secId, $repNombre, $esSec]);
+            db()->prepare('INSERT INTO reparticiones (secretaria_id, nombre, es_secretaria, tipo) VALUES (?, ?, ?, ?)')
+                ->execute([$secId, $repNombre, $esSec, $esSec ? 'Secretaría' : 'Otro']);
             $repCreadas++;
         } else {
             db()->prepare('UPDATE reparticiones SET es_secretaria = ? WHERE id = ?')->execute([$esSec, $repId]);

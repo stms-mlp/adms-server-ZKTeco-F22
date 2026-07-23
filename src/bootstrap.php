@@ -10,7 +10,7 @@ if (!defined('ADMS')) {
 define('BASE_PATH', dirname(__DIR__));
 
 // Versión de la aplicación (se actualiza en cada cambio).
-define('APP_VERSION', '2026.07.08-roles');
+define('APP_VERSION', '2026.07.08-etapa1');
 
 // --- Cargar configuración ---
 $configFile = BASE_PATH . '/config.php';
@@ -208,6 +208,21 @@ function ensure_extra_tables(PDO $pdo): void
     } catch (PDOException $e) {
         // La columna ya existe: ignorar.
     }
+
+    // Niveles/tipos en las dependencias: tipo y dependencia padre.
+    foreach ([
+        'tipo'      => (db_driver() === 'sqlite' ? "TEXT DEFAULT 'Otro'" : "VARCHAR(40) NULL DEFAULT 'Otro'"),
+        'parent_id' => (db_driver() === 'sqlite' ? 'INTEGER' : 'BIGINT UNSIGNED NULL'),
+    ] as $col => $def) {
+        try {
+            $pdo->exec("ALTER TABLE reparticiones ADD COLUMN $col $def");
+        } catch (PDOException $e) {
+            // Ya existe: ignorar.
+        }
+    }
+    // Las sedes de secretaría quedan con tipo 'Secretaría'.
+    try { $pdo->exec("UPDATE reparticiones SET tipo = 'Secretaría' WHERE es_secretaria = 1 AND (tipo IS NULL OR tipo = 'Otro')"); }
+    catch (PDOException $e) { /* ignorar */ }
 }
 
 require __DIR__ . '/helpers.php';
